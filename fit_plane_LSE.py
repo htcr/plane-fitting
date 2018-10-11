@@ -16,7 +16,7 @@ def get_point_dist(points, plane):
     dists = np.abs(points @ plane) / np.sqrt(plane[0]**2 + plane[1]**2 + plane[2]**2)
     return dists
 
-def fit_plane_LSE_RANSAC(points, iters=100, inlier_thresh=0.005):
+def fit_plane_LSE_RANSAC(points, iters=1000, inlier_thresh=0.05, return_outlier_list=False):
     # points: Nx4 homogeneous 3d points
     # return: 
     #   plane: 1d array of four elements [a, b, c, d] of ax+by+cz+d = 0
@@ -40,13 +40,25 @@ def fit_plane_LSE_RANSAC(points, iters=100, inlier_thresh=0.005):
             max_inlier_num = num_inliers
             max_inlier_list = tmp_inlier_list
         
-        print('iter %d, %d inliers' % (i, max_inlier_num))
+        #print('iter %d, %d inliers' % (i, max_inlier_num))
 
     final_points = points[max_inlier_list, :]
     plane = fit_plane_LSE(final_points)
+    
+    fit_variance = np.var(get_point_dist(final_points, plane))
+    print('RANSAC fit variance: %f' % fit_variance)
+    print(plane)
+
     dists = get_point_dist(points, plane)
-    inlier_list = np.where(dists < inlier_thresh)[0]
-    return plane, inlier_list
+
+    select_thresh = inlier_thresh * 1
+
+    inlier_list = np.where(dists < select_thresh)[0]
+    if not return_outlier_list:
+        return plane, inlier_list
+    else:
+        outlier_list = np.where(dists >= select_thresh)[0]
+        return plane, inlier_list, outlier_list
 
     
     
